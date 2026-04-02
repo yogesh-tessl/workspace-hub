@@ -1,0 +1,72 @@
+# drift-policy.yaml — Per-tool classification of post-update file changes.
+# Read by: scripts/cron/harness-update.sh (drift check), scripts/maintenance/ai-tools-status.sh
+#
+# Categories:
+#   machine_specific: Files that MUST differ per machine — never revert, never sync
+#   portable:         Files that SHOULD be identical across machines — flag for review
+#   never_sync:       Secrets, auth, personal data — excluded entirely
+#   intentional_dirty: Files the operator may have modified on purpose — warn, don't touch
+
+hermes:
+  tool_dir: "~/.hermes/hermes-agent"
+  install_type: git
+  machine_specific:
+    - path: "hermes"
+      reason: "Shebang must point to local venv python (machine-specific path)"
+      expected_action: "leave as-is after update"
+  portable:
+    - path: "package-lock.json"
+      reason: "npm dependency lock — should be identical across machines"
+  never_sync:
+    - "auth.json"
+    - ".env"
+    - "memories/"
+    - "sessions/"
+    - "skills/"
+    - "audio_cache/"
+    - "config.yaml"
+  intentional_dirty:
+    - pattern: "*.local"
+      reason: "Local experiment files"
+
+gstack:
+  tool_dir: "~/.claude/skills/gstack"
+  install_type: git
+  machine_specific: []
+  portable:
+    - path: "*"
+  never_sync: []
+  intentional_dirty:
+    - pattern: "*.local"
+      reason: "Local experiment files"
+
+# npm-global tools have no git working tree — drift is config-only
+# Config drift is handled by sync-agent-configs.sh, not this file
+claude_code:
+  install_type: npm
+  package: "@anthropic-ai/claude-code"
+  config_dir: "~/.claude"
+  notes: "Config sync via sync-agent-configs.sh"
+
+codex:
+  install_type: npm
+  package: "@openai/codex"
+  config_dir: "~/.codex"
+  notes: "Config sync via sync-agent-configs.sh"
+
+gemini:
+  install_type: npm
+  package: "@google/gemini-cli"
+  config_dir: "~/.gemini"
+  notes: "Config sync via sync-agent-configs.sh"
+
+gsd:
+  install_type: npm
+  package: "get-shit-done-cc"
+  config_dir: null
+  notes: "No config — CLI only"
+
+superpowers:
+  install_type: claude_plugin
+  tool_dir: "~/.claude/plugins/superpowers"
+  notes: "Updated via claude plugin update"
