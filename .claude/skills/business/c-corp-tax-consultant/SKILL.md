@@ -1,6 +1,6 @@
 ---
 name: c-corp-tax-consultant
-description: Tax optimization and filing guide for C-Corp commercial real estate entities. Covers Form 1120, cost segregation, NOL management, depreciation strategies, 1099 reconciliation, and legitimate tax minimization for NNN lease properties. Includes TX franchise tax filing procedures and direct e-filing research.
+description: "Tax optimization and filing guide for C-Corp commercial real estate entities. Covers Form 1120, cost segregation, NOL management, depreciation strategies, 1099 reconciliation, and legitimate tax minimization for NNN lease properties. Includes TX franchise tax filing and direct e-filing research. Use when the user asks about C-Corp real estate tax filing, cost segregation studies, depreciation strategies, NNN lease tax optimization, 1099 reconciliation, or Texas franchise tax."
 version: 1.0.0
 author: Hermes Agent
 license: MIT
@@ -109,9 +109,9 @@ IRS references:
 - Rev. Proc. 87-56 (asset class lives)
 - IRS Cost Segregation Audit Techniques Guide
 
-### Real-World Example: SKEstates Inc (Family Dollar, Houston TX)
+### Example: Single-Tenant NNN Property
 
-Building basis $1,089,534, placed in service Sept 2025 (month 9):
+Building basis $1,089,534, placed in service month 9 of tax year:
 
 | Component | Allocation | Basis | Bonus 40% | Regular Y1 | Total Y1 |
 |-----------|-----------|-------|-----------|-----------|----------|
@@ -123,23 +123,6 @@ Building basis $1,089,534, placed in service Sept 2025 (month 9):
 vs Standard: $8,161 — additional deduction of $121,071 creating NOL of ~$119,784.
 This shields ~$96K of 2026 income and ~$42K of 2027 income.
 - IRS Cost Segregation Audit Techniques Guide
-
-### Example Calculation
-
-Given building basis $1,089,534, placed in service month 9:
-
-**Standard (39yr SL):**
-- Year 1: $1,089,534 × 0.749% = $8,161
-
-**Cost Seg with 40% Bonus (2025):**
-| Component | Basis | Bonus | Regular Y1 | Total Y1 |
-|-----------|-------|-------|------------|----------|
-| Structure (75%) | $817,151 | $0 | $6,120 | $6,120 |
-| Land improvements (15%) | $163,430 | $65,372 | $3,084 | $68,456 |
-| Personal property (10%) | $108,953 | $43,581 | $4,903 | $48,484 |
-| **Total** | | | | **$123,060** |
-
-vs $8,161 standard — **$114,899 additional deduction**
 
 ---
 
@@ -251,31 +234,6 @@ If the C-Corp is funded by a related-party loan (e.g., from parent company or sh
 
 ---
 
-## Phase 5: 1099-MISC Reconciliation for NNN Properties
-
-### The Pass-Through Pattern (Critical Insight)
-
-For NNN properties, **1099-MISC Box 1 commonly includes property tax proration** that the landlord pays to the county and the tenant reimburses. This is a **pass-through with net zero tax impact**:
-
-- Tax reimbursement → income (included in gross rents on Form 1120 Line 5)
-- Property tax paid → expense (deducted on Schedule A Line 5)
-- **Net effect: $0 on taxable income**
-
-This means even if the 1099 "over-reports" by including tax proration, **filing can proceed while awaiting payer confirmation**. The discrepancy is cosmetic, not financial.
-
-### Reconciliation Workflow
-
-1. Get 1099-MISC from payer
-2. List all known payments: rent months, insurance reimb, HOA reimb, tax reimb
-3. Calculate expected total = rent + reimbursements received in calendar year
-4. Compare gap to property tax proration: total_tax / 12 × months_owned
-5. If gap matches tax prorate → it's a pass-through, net zero impact
-6. Email payer for itemized breakdown (good practice, NOT blocking)
-7. File with 1099 amount (simplest) or actual income with explanatory statement
-
-**Real-World Example: SKEstates Inc (sabithaandkrishnaestates)**
-1099: $50,085.60 | Expected rent: $30,425.01 | Gap: ~$9,732 = ~4mo tax prorate ($29,195/12 × 4). Net zero impact. Filing proceeded while awaiting FD confirmation.
-
 ## Phase 6: Form 1120 Filing Plan Structure
 
 When creating a filing plan doc for a C-Corp NNN property:
@@ -316,7 +274,7 @@ Texas has no state income tax but all entities registered with the TX Secretary 
 
 1. Go to comptroller.texas.gov
 2. Navigate to Franchise Tax → File Forms → Webfile
-3. Need: EIN (39-2384131), Texas SOS file number
+3. Need: EIN, Texas SOS file number
 4. If first time filing, create a Webfile account
 5. Select "No-Tax-Due Report" (revenue below threshold)
 6. Enter total revenue from Form 1120
@@ -325,7 +283,7 @@ Texas has no state income tax but all entities registered with the TX Secretary 
 
 ---
 
-## Phase 7: Direct E-Filing Options
+## Phase 8: Direct E-Filing Options
 
 ### Federal Form 1120 E-Filing
 
@@ -360,7 +318,7 @@ If e-filing is not available or cost-prohibitive:
 
 ---
 
-## Phase 8: 1099-MISC Reconciliation Protocol
+## Phase 9: 1099-MISC Reconciliation Protocol
 
 ### 1099-MISC Reconciliation Step-by-Step
 
@@ -397,18 +355,6 @@ Expected 1099 = (Months of rent × monthly rent)
 ```
 
 If the reconstructed total is within ~$20 of the 1099, it's rounding. Move on.
-
-### NNN Property Acquisition: Common Gap Explainer
-
-When acquiring a NNN property mid-year, the 1099-MISC Box 1 often exceeds expected rent by including the **property tax proration**. Reconstruct the amount:
-
-```
-Expected 1099 = Rent months + Insurance reimb + HOA + Property tax proration
-```
-
-Example: Oct-Dec rent $30,425 + Insurance $9,519 + HOA $393 + Tax prorate $9,732 = $50,069 (vs 1099 $50,086, diff $17 rounding)
-
-**Pass-through = net zero.** Property tax reimbursement is income, but property tax paid to county is an equal deduction. Net taxable impact is $0. **Filing is NOT blocked by a 1099-MISC amount that includes a tax prorate** — even if the exact proration math differs by ~$10-$20 due to rounding, the net result is identical either way.
 
 ---
 

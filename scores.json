@@ -1,0 +1,11 @@
+{
+  "repo": "vamseeachanta/workspace-hub",
+  "skills": [
+    { "name": "hermes-ecosystem-integration", "before": 43, "after": 90 },
+    { "name": "agent-usage-optimizer", "before": 55, "after": 79 },
+    { "name": "google-workspace", "before": 64, "after": 88 },
+    { "name": "c-corp-tax-consultant", "before": 64, "after": 83 },
+    { "name": "notion", "before": 76, "after": 83 },
+    { "name": "youtube-content", "before": 100, "after": 100 }
+  ]
+}

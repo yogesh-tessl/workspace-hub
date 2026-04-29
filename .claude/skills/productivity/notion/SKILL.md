@@ -1,6 +1,6 @@
 ---
 name: notion
-description: Notion API for creating and managing pages, databases, and blocks via curl. Search, create, update, and query Notion workspaces directly from the terminal.
+description: "Notion API for creating and managing pages, databases, and blocks via curl. Search, create, update, and query Notion workspaces directly from the terminal. Use when the user wants to interact with Notion, manage Notion pages or databases, automate Notion workflows, or query Notion data from the command line."
 version: 1.0.0
 author: community
 license: MIT
@@ -28,16 +28,21 @@ Use the Notion API via curl to create, read, update pages, databases (data sourc
 
 ## API Basics
 
-All requests use this pattern:
+All requests use these standard headers (shown in full here, abbreviated as `$NOTION_HEADERS` in examples below):
 
 ```bash
-curl -s -X GET "https://api.notion.com/v1/..." \
-  -H "Authorization: Bearer $NOTION_API_KEY" \
-  -H "Notion-Version: 2025-09-03" \
-  -H "Content-Type: application/json"
+NOTION_HEADERS='-H "Authorization: Bearer $NOTION_API_KEY" -H "Notion-Version: 2025-09-03" -H "Content-Type: application/json"'
 ```
 
 The `Notion-Version` header is required. This skill uses `2025-09-03` (latest). In this version, databases are called "data sources" in the API.
+
+### Error Handling
+
+Common errors and recovery:
+- **401 Unauthorized** — invalid or expired API key; regenerate at notion.so/my-integrations
+- **404 Not Found** — page/database not shared with integration; click "..." → "Connect to" → integration name
+- **400 validation_error** — malformed property format; check Property Types section below
+- **429 Rate Limited** — back off and retry after 1-2 seconds (limit ~3 req/s)
 
 ## Common Operations
 

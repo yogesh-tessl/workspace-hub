@@ -2,8 +2,7 @@
 name: agent-usage-optimizer
 version: 1.0.0
 category: ai
-description: Reads quota state and recommends optimal Claude/Codex/Gemini allocation
-  per task
+description: "Reads quota state across Claude, Codex, and Gemini providers, recommends task routing based on cost and capacity, and warns when approaching rate limits. Use when the user asks about rate limits, quota usage, model selection, which model to use, how to distribute tasks across providers, or API quota management."
 type: reference
 capabilities:
 - quota-aware routing

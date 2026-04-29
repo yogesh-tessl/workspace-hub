@@ -2,7 +2,7 @@
 name: hermes-ecosystem-integration
 version: 3.0.0
 category: devops
-description: "Wire Hermes into workspace-hub ecosystem — multi-repo skills, config sync, session export to learning pipeline, memory cross-pollination, skill patch tracking, and cross-machine health checks."
+description: "Connect Hermes to workspace-hub for multi-repo skill sharing, config sync across machines, session export, and health checks. Use when the user wants to sync Hermes config, add or update Hermes patches, debug health check failures, set up multi-repo skill directories, or export Hermes sessions to the learning pipeline."
 tags: [hermes, harness, skills, sync, multi-machine, learning-pipeline]
 ---
 
@@ -218,89 +218,6 @@ In `comprehensive-learning-nightly.sh`:
 - Phase 1b drift detection: `hermes` provider row added
 - Cross-Machine Data Flow: Hermes included
 
-### Memory Health-Check Cron (#1916, #1920)
-
-Two monitoring additions:
-
-1. **Daily memory quality scan (05:50 UTC)**:
-   Added to `config/scheduled-tasks/schedule-tasks.yaml`:
-   ```yaml
-   - id: memory-health-check
-     command: uv run --no-project python scripts/memory/eval-memory-quality.py --memory-root .claude/memory/ --format md --check-paths
-     log: logs/quality/memory-health-*.md
-   ```
-   Checks: signal_density, pct_stale_paths, headroom, dedup_candidates.
-   Complements agent-memory-backup (05:00) with quality verification.
-
-2. **48h staleness alert in check-memory-drift.sh**:
-   If `.claude/memory/agents.md` hasn't been modified in 48+ hours,
-   the script prints a RED warning and attempts notification via `scripts/notify.sh`.
-
-## Per-Repo Agent/Command Ecosystem (3,000+ files Hermes can't see)
-
-Hermes only reads `SKILL.md` files. But the real knowledge lives in Claude Code
-native formats across 22 repos:
-
-```
-Template layer (GSD/gstack, identical across 18 repos):
-  74 agents/ dirs + 150 commands/ = ~4,000 files (shared infrastructure)
-
-Unique content (high value):
-  digitalmodel: 103 unique agents (orcaflex/13, gmsh/24, freecad/17, aqwa/7, orcawave/5, cad/5)
-  CAD-DEVELOPMENTS: 161 commands, 6 knowledge files
-  workspace-hub: 19 agents, 135 commands, 21 knowledge files
-```
-
-### Bridging approach: convert, don't fork
-
-Agent .md files have similar structure to SKILL.md (YAML frontmatter + markdown body).
-Convert with `scripts/skills/convert-agent-to-skill.py` (see #1721):
-
-```bash
-uv run python scripts/skills/convert-agent-to-skill.py \
-  --input digitalmodel/.claude/agents/orcaflex \
-  --output digitalmodel/.claude/skills/engineering/orcaflex-agents
-```
-
-Key conversion differences:
-- Add `version: 1.0.0`, `category:`, `type: reference` to frontmatter
-- File must be named `SKILL.md`
-- Directory-based agents: concatenate README.md + other .md files
-- Category auto-inferred from path (orcaflex→engineering, github→development)
-- **KEEP** original agent files intact — Claude Code uses them directly
-
-Pitfalls found during #1721 conversion:
-- **Space-in-name bug**: `derive_skill_name()` can produce names with spaces
-  (e.g. "Marine Engineering Excel Analyzer") from metadata `name:` fields,
-  creating dirs with spaces. Post-hoc: `mv "Bad Name" good-name` + fix `name:` in SKILL.md.
-- **Meta files get converted**: README.md, MIGRATION_SUMMARY.md at agents/ root
-  become useless skills. Remove them after batch conversion.
-- **Actual agent counts differ from estimates**: plan said 13 orcaflex agents but
-  only 6 .md files existed (rest were subdirs/templates). Script handles this fine.
-- **Broken symlinks in skills dir**: digitalmodel had 29 broken symlinks in
-  .claude/skills/ — the conversion creates new dirs alongside them, no conflict.
-- **Security scanner false positives**: code-review-swarm (GitHub agents merged)
-  triggers CRITICAL findings for CLAUDE.md references and base64 examples in docs.
-  Use `git commit --no-verify` for these reference-doc skills.
-
-### How to detect when new agents need conversion
-
-```bash
-# Find agent dirs with no corresponding SKILL.md
-for d in $(find digitalmodel/.claude/agents -maxdepth 1 -type d | tail -n+2); do
-  name=$(basename "$d")
-  skill=$(find digitalmodel/.claude/skills -path "*/$name*/SKILL.md" 2>/dev/null | head -1)
-  [ -z "$skill" ] && echo "NO SKILL: $name ($(find "$d" -type f | wc -l) agent files)"
-done
-```
-
-### Template vs unique agents
-
-18 repos have identical 74 agents (GSD template). Check with:
-```bash
-diff <(ls repo-a/.claude/agents/ | sort) <(ls repo-b/.claude/agents/ | sort)
-```
-If identical → template. Only convert unique agents per repo.
 
 ## Multi-Provider Parallel Sessions
 
@@ -332,108 +249,25 @@ Check status: `hermes status` or parse `~/.hermes/auth.json` credential_pool.
 **For overnight batches:** Assign analysis tasks to sonnet (cheaper, Anthropic quota)
 and implementation tasks to gpt-5.4 (OpenAI quota) — different rate limit pools.
 
-## Write-Back Rules (Issues #1941-1952, ALL CLOSED)
+## Write-Back Rules
 
-**Repo .claude/skills/ is the single source of truth.** ~/.hermes/skills/ is empty
-(9 MB cleaned, 0 SKILL.md files local). external_dirs wiring means both Hermes AND
-Claude Code see everything written there. No dual-write, no sync drift.
+**Repo .claude/skills/ is the single source of truth.** `~/.hermes/skills/` is empty — all skills served via external_dirs. All 4 agents (Claude Code, Codex CLI, Gemini CLI, Hermes) access the same skill library.
 
-**Verified skill counts (active, no _archive):**
-  workspace-hub: 696 | CAD-DEVELOPMENTS: 218 | digitalmodel: 31
-  worldenergydata: 21 | achantas-data: 13 | assetutilities: 3
-  Total unique: ~1156 across 6 repos
+1. **Skills go to `.claude/skills/` directly** — write SKILL.md, then `git add + commit + push`
+2. **Reusable scripts** → `scripts/` in repo, or skill's `scripts/` subdir
+3. **Rules/Hooks** → `.claude/rules/<name>.md` or `.claude/hooks/<name>.sh`
+4. **Commit immediately** — all `.claude/` writes get committed with clear provenance
 
-**All 4 agents access same skill library:**
-  - Claude Code: reads .claude/skills/ directly (on-demand via slash commands)
-  - Codex CLI: .codex/skills → symlink → ../.claude/skills
-  - Gemini CLI: .gemini/skills → symlink → ../.claude/skills
-  - Hermes: external_dirs (6 paths in config.yaml, reads all repos)
+### Automatic Drift Guard
 
-**Per-repo .codex/.gemini symlink pattern:**
-  - workspace-hub: `.codex/skills -> ../.claude/skills`
-  - sub-repos (CAD-DEVELOPMENTS, etc.): `.codex/skills -> ../../.claude/skills`
-  - If symlink broken (real directory with stale files): delete real dir, create symlink
-
-### Rule 1: Skills Go to .claude/skills/ Directly
-When creating a new skill, write SKILL.md to
-`workspace-hub/.claude/skills/<category>/<name>/SKILL.md`.
-Then: `git add .claude/skills/ && git commit -m "hermes: new skill — <name>"`.
-
-### Rule 2: Script Persistence
-Reusable scripts → `scripts/` in repo. If part of a skill → skill's `scripts/` subdir.
-
-### Rule 3: Hook/Rule Generation
-- Rules: `.claude/rules/<name>.md` (CC frontmatter with trigger/glob)
-- Hooks: `.claude/hooks/<name>.sh` (POSIX shell, auto-fires on CC sessions)
-
-### Rule 4: Commit Immediately
-All `.claude/` writes get `git add + commit + push` with clear provenance.
-
-### Automatic Drift Guard (Issues #1943, #1948)
-`scripts/hermes/backfill-skills-to-repo.sh` — wired into `harness-update.sh`
-(runs after `update_hermes`, via `backfill_hermes_skills()` function).
-Detects any skills in ~/.hermes/skills/ that aren't in any repo and copies
-them over with per-repo routing (see below).
+`scripts/hermes/backfill-skills-to-repo.sh` detects skills in `~/.hermes/skills/` not in any repo and copies them with per-repo routing (exact category match → substring match → defaults to workspace-hub).
 
 Usage: `backfill-skills-to-repo.sh [--dry-run] [--commit]`
 
-**Per-Repo Routing (#1948):**
-The backfill script routes skills to the correct repo automatically:
-1. Scans all 6 external_dirs repos for existing category matches
-2. Routes by exact category name match (e.g., "engineering" → CAD-DEVELOPMENTS)
-3. Falls back to substring match
-4. Defaults to workspace-hub
-5. Per-repo git commit + push (digitalmodel commits in digitalmodel/ etc.)
-
-**Testing pattern:** Create dummy skill in ~/.hermes/skills/ → run --dry-run
-to verify routing → run --commit for full pipeline → clean up dummy, revert commit.
-
-**Skill count verification:**
-```bash
-# Total active across all repos:
-find /mnt/local-analysis/workspace-hub/{.claude,CAD-DEVELOPMENTS/.claude,\
-  worldenergydata/.claude,achantas-data/.claude,assetutilities/.claude,\
-  digitalmodel/.claude}/skills \
-  -name SKILL.md -not -path "*/_archive/*" | wc -l
-```
-
 ## Pitfalls
 
-1. **`hermes update` overwrites patches** — always save patches to
-   `config/agents/hermes/patches/` so harness-update.sh re-applies them
-2. **Config template is NOT the live config** — template has `__WS_HUB_PATH__`
-   placeholder; never copy it directly without resolving
-3. **YAML merge direction matters** — template wins over existing for shared keys;
-   this means template changes propagate automatically but can override manual tweaks
-4. **Hostname matching in resolve_ws_hub_path** — uses `hostname.lower() in name.lower()`
-   which is fuzzy; if hostname doesn't match any workstation, falls back to $WS_HUB
-5. **Skills count baseline in harness-config.yaml** is 0 — set it with
-   `nightly-readiness.sh --update-baseline` after initial setup
-6. **skill_manage can't edit external skills** — returns "not found" because it only
-   searches `~/.hermes/skills/` (local). Use `patch()` on the raw filesystem path
-   to fix external skills. The skill is immediately visible via skill_view after.
-7. **Session export JSONL is now git-tracked** — `!logs/orchestrator/hermes/` and
-   `!logs/orchestrator/codex/` exceptions added to .gitignore. Committed nightly by
-   `commit-learning-artifacts.sh`. Session-signals need redaction first (see
-   `agent-learnings-portability` skill).
-8. **Each repo's .claude/ is a full ecosystem** — not just skills but also commands,
-   docs, rules, memory, state, work-queue, AGENTS.md, CLAUDE.md. The 24 repos with
-   `.claude/` dirs each have their own agent contract (AGENTS.md often points back
-   to workspace-hub's canonical contract).
-9. **Skill content security scanner blocks commits** — pipeline-detail.md and other
-   skill docs with embedded shell examples trigger CRITICAL/HIGH findings (echo_pipe_exec,
-   persistence_cron, etc.). These are false positives on documentation. Use
-   `git commit --no-verify` for skill docs that contain code examples. Do NOT disable
-   the scanner globally — it's useful for actual skill code.
-10. **Overnight corpus analysis needs git contention map** — when parallelizing analysis
-    across 3+ agents, prefix output paths by phase (phase-a-*, phase-b-*, etc.) and
-    enforce negative write boundaries (explicit DO NOT WRITE TO lists) in each prompt.
-    Agents will "helpfully" fix files in other terminals' territory without this.
-11. **Claude plugin updates must use the installed plugin id, not just the slug** —
-    for Superpowers, `claude plugin update superpowers --scope project` can fail with
-    `Plugin "superpowers" not found` even when the plugin is installed and enabled.
-    First inspect `claude plugin list --json`, then use the returned `id` field, e.g.
-    `superpowers@claude-plugins-official`, with the detected scope:
-    `claude plugin update superpowers@claude-plugins-official --scope project`.
-    For automation, treat `claude plugin list --json` as the source of truth for
-    plugin id + scope + enabled state, and summarize installed scopes in dry-run output.
+1. **`hermes update` overwrites patches** — always save patches to `config/agents/hermes/patches/` so harness-update.sh re-applies them
+2. **Config template is NOT the live config** — template has `__WS_HUB_PATH__` placeholder; never copy it directly without resolving
+3. **YAML merge direction matters** — template wins for shared keys, which can override manual tweaks
+4. **skill_manage can't edit external skills** — returns "not found" for external_dirs skills; use `patch()` on the raw filesystem path instead
+5. **Skill content security scanner blocks commits** — shell examples in skill docs trigger false positives; use `git commit --no-verify` for documentation-only skills, but do not disable the scanner globally
